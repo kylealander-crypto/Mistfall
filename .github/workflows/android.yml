@@ -1,0 +1,44 @@
+name: Build Android app
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['android/**', '.github/workflows/android.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.10' }
+      - name: Signing key
+        env: { KS: '${{ secrets.MISTFALL_KEYSTORE }}' }
+        run: |
+          if [ -z "$KS" ]; then echo "::error::Add the MISTFALL_KEYSTORE secret first (Settings, Secrets and variables, Actions)."; exit 1; fi
+          echo "$KS" | base64 -d > "$RUNNER_TEMP/mistfall.jks"
+          echo "MF_KEYSTORE_PATH=$RUNNER_TEMP/mistfall.jks" >> "$GITHUB_ENV"
+      - name: Build APK and Play bundle
+        env:
+          MF_KEYSTORE_PASSWORD: mistfall-upload-key
+          MF_VERSION_CODE: ${{ github.run_number }}
+          MF_VERSION_NAME: 0.1.${{ github.run_number }}-early-access
+        run: gradle -p android assembleRelease bundleRelease --no-daemon
+      - name: Collect files
+        run: |
+          mkdir out
+          cp android/app/build/outputs/apk/release/app-release.apk out/Mistfall.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab out/Mistfall-play.aab
+      - uses: actions/upload-artifact@v4
+        with: { name: Mistfall-android, path: out/ }
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-${{ github.run_number }}
+          name: Mistfall for Android (build ${{ github.run_number }})
+          body: Install Mistfall.apk on Android. Mistfall-play.aab is for Google Play. The game inside updates itself from the website, so this file only changes for app-level changes.
+          files: |
+            out/Mistfall.apk
+            out/Mistfall-play.aab

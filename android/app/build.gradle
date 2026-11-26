@@ -1,0 +1,30 @@
+plugins { id 'com.android.application' }
+def ks = System.getenv('MF_KEYSTORE_PATH')
+android {
+    namespace 'com.kylealander.mistfall'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.kylealander.mistfall'
+        minSdk 24
+        targetSdk 34
+        versionCode Integer.parseInt(System.getenv('MF_VERSION_CODE') ?: '1')
+        versionName System.getenv('MF_VERSION_NAME') ?: '0.1-early-access'
+    }
+    signingConfigs {
+        release {
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('MF_KEYSTORE_PASSWORD')
+                keyAlias 'mistfall'
+                keyPassword System.getenv('MF_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (ks) signingConfig signingConfigs.release
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
