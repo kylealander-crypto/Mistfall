@@ -26,6 +26,13 @@ public class MainActivity extends Activity {
         s.setDatabaseEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
+        long code = 0;
+        try {
+            android.content.pm.PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
+            code = android.os.Build.VERSION.SDK_INT >= 28 ? pi.getLongVersionCode() : pi.versionCode;
+        } catch (Exception e) { }
+        // the game reads this to offer "Update the app" when a newer APK is on the Releases page
+        s.setUserAgentString(s.getUserAgentString() + " MistfallApp/" + code);
         web.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
